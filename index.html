@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Teste</title>
+<title>Teste2</title>
 
 <style>
   html, body {
@@ -52,7 +52,7 @@
   }
 
   button {
-    padding:4px 10px;
+    padding:6px 12px;
     border:3px solid #74a14a; /* Borda verde */
     border-radius:12px;
     font-size:14px;
@@ -96,7 +96,7 @@
   <button id="stopBtn" style="display:none;">⏹️ Parar Gravação</button>
 </div>
 
-<a id="download" download="fotomoldurapersonalizada.png"></a>
+<a id="download" download="foto-evento.png"></a>
 
 <!-- Canvas para gravação -->
 <canvas id="recordCanvas" style="display:none;"></canvas>
@@ -129,8 +129,6 @@ let isRecording = false;
 let recordStartTime = 0;
 let recordTimerInterval = null;
 
-let lastVideoUrl = null;
-
 const API_URL = "https://videos-molduras-production-00e9.up.railway.app/convert";
 const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -148,7 +146,6 @@ async function startCamera(){
   });
 
   video.srcObject = stream;
-
   video.style.transform = usingFront ? "scaleX(-1)" : "scaleX(1)";
   await waitForVideoReady();
 }
@@ -169,38 +166,27 @@ switchBtn.onclick = () => {
 };
 
 /* ---------------------
-   FOTO
+   FOTO (1080x1920)
 ---------------------- */
 snapBtn.onclick = async () => {
   await waitForVideoReady();
 
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
-
-  const targetW = 720;
-  const targetH = 1280;
+  const targetW = 1080;
+  const targetH = 1920;
 
   const canvas = document.createElement("canvas");
   canvas.width = targetW;
   canvas.height = targetH;
   const ctx = canvas.getContext("2d");
 
-  const buffer = document.createElement("canvas");
-  buffer.width = targetW;
-  buffer.height = targetH;
-  const btx = buffer.getContext("2d");
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
 
-  btx.save();
-  if(usingFront){
-    btx.translate(targetW,0);
-    btx.scale(-1,1);
-  }
-
+  // Ajuste proporcional do vídeo para preencher o canvas
   const videoRatio = vw / vh;
   const targetRatio = targetW / targetH;
 
   let sx, sy, sw, sh;
-
   if(videoRatio > targetRatio){
     sh = vh;
     sw = sh * targetRatio;
@@ -213,11 +199,17 @@ snapBtn.onclick = async () => {
     sy = (vh - sh) / 2;
   }
 
-  btx.drawImage(video, sx, sy, sw, sh, 0, 0, targetW, targetH);
-  btx.restore();
+  ctx.save();
+  if(usingFront){
+    ctx.translate(targetW,0);
+    ctx.scale(-1,1);
+  }
 
-  ctx.drawImage(buffer, 0, 0);
-  ctx.drawImage(frame, 0, 0, targetW, targetH);
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, targetW, targetH);
+  ctx.restore();
+
+  // Moldura
+  ctx.drawImage(frame,0,0,targetW,targetH);
 
   download.href = canvas.toDataURL("image/png");
   download.click();
@@ -236,127 +228,3 @@ function startTimer(){
     const s = String(diff % 60).padStart(2,"0");
     recordingIndicator.textContent = `🔴 REC ${m}:${s}`;
   },500);
-}
-
-function stopTimer(){
-  clearInterval(recordTimerInterval);
-  recordingIndicator.style.display = "none";
-}
-
-/* ---------------------
-   GRAVAR VÍDEO COM PROCESSAMENTO
----------------------- */
-recordBtn.onclick = async () => {
-  if (isRecording) return;
-
-  isRecording = true;
-  recordedChunks = [];
-
-  await waitForVideoReady();
-
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
-
-  const targetW = 720;
-  const targetH = Math.round(targetW * (vh / vw));
-
-  recordCanvas.width = targetW;
-  recordCanvas.height = targetH;
-  const ctx = recordCanvas.getContext("2d");
-
-  function draw() {
-    if (!isRecording) return;
-
-    ctx.clearRect(0, 0, targetW, targetH);
-
-    ctx.save();
-    if (usingFront) {
-      ctx.translate(targetW, 0);
-      ctx.scale(-1, 1);
-    }
-    ctx.drawImage(video, 0, 0, targetW, targetH);
-    ctx.restore();
-
-    ctx.drawImage(frame, 0, 0, targetW, targetH);
-
-    requestAnimationFrame(draw);
-  }
-  draw();
-
-  const canvasStream = recordCanvas.captureStream(24);
-  const audioTrack = stream.getAudioTracks()[0];
-  const combined = new MediaStream();
-  canvasStream.getVideoTracks().forEach(t => combined.addTrack(t));
-  if (audioTrack) combined.addTrack(audioTrack);
-
-  mediaRecorder = new MediaRecorder(combined, { mimeType: "video/webm" });
-
-  mediaRecorder.ondataavailable = e => {
-    if (e.data.size > 0) recordedChunks.push(e.data);
-  };
-
-  mediaRecorder.onstop = async () => {
-    isRecording = false;
-    stopTimer();
-
-    // Mostrar indicador de processamento
-    recordingIndicator.style.display = "block";
-    recordingIndicator.textContent = "⏳ Processando vídeo...";
-
-    const blob = new Blob(recordedChunks, { type: "video/webm" });
-    const fd = new FormData();
-    fd.append("video", blob, "video.webm");
-
-    try {
-      const device = isiOS ? "ios" : "android";
-
-      const res = await fetch(`${API_URL}?device=${device}`, {
-        method: "POST",
-        body: fd
-      });
-
-      const mp4 = await res.blob();
-      const url = URL.createObjectURL(mp4);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "video-moldura.mp4";
-      a.click();
-
-      URL.revokeObjectURL(url);
-
-      // Esconder indicador
-      recordingIndicator.style.display = "none";
-
-    } catch (err) {
-      console.error("Erro na conversão:", err);
-      recordingIndicator.textContent = "❌ Erro ao processar vídeo!";
-      setTimeout(() => recordingIndicator.style.display = "none", 2000);
-    }
-  };
-
-  mediaRecorder.start(100);
-
-  startTimer();
-  recordBtn.style.display = "none";
-  stopBtn.style.display = "inline-block";
-};
-
-/* ---------------------
-   PARAR
----------------------- */
-stopBtn.onclick = () => {
-  if (mediaRecorder && mediaRecorder.state === "recording") {
-    isRecording = false;
-    mediaRecorder.stop();
-  }
-
-  recordBtn.style.display = "inline-block";
-  stopBtn.style.display = "none";
-};
-
-startCamera();
-</script>
-
-</body>
-</html>
