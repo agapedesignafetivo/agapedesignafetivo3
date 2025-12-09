@@ -1,200 +1,352 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- Estrutura base da câmera com moldura | build: 2025-12-01-ec-a1 -->
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Luiz Miguel faz 1 ano</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
-      font-family: sans-serif;
-    }
-    #video, #overlay {
-      position: absolute;
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
-    }
-    #overlay {
-      pointer-events: none;
-    }
-    #buttons {
-      position: absolute;
-      bottom: 50px;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      gap: 25px;
-      z-index: 10;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title></title>
 
-    /* Botões retangulares + estilos */
-    button {
-      padding: 12px 20px;
-      border-radius: 10px;
-      border: none;
-      background: white;
-      font-size: 18px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    }
+<style>
+  html, body {
+    margin:0;
+    padding:0;
+    overflow:hidden;
+    background:black;
+    height:100%;
+    width:100%;
+  }
 
-    #preview-container {
-      position: absolute;
-      bottom: 40px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 11;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-    }
-    #photo-preview {
-      width: 85vw;
-      max-width: 280px;
-      border: 3px solid white;
-      border-radius: 10px;
-      margin-bottom: 8px;
-    }
-    #save-btn, #retry-btn {
-      background: #4CAF50;
-      color: white;
-      border-radius: 6px;
-      padding: 8px 16px;
-      font-size: 15px;
-      margin-top: 5px;
-      width: 160px;
-    }
-    #instructions {
-      color: #fff;
-      font-size: 14px;
-      font-weight: bold;
-      background-color: rgba(0,0,0,0.6);
-      padding: 10px 12px;
-      border-radius: 8px;
-      margin-top: 10px;
-      text-align: center;
-      display: none;
-      max-width: 90%;
-    }
-    #recording-indicator {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 12;
-      background: rgba(0,0,0,0.7);
-      color: #fff;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: bold;
-      display: none;
-    }
-    #video-preview-container {
-      position: absolute;
-      bottom: 140px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 11;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-    }
-    #video-preview {
-      width: 85vw;
-      max-width: 280px;
-      border: 3px solid white;
-      border-radius: 10px;
-      margin-bottom: 8px;
-      background: #000;
-    }
-    #save-video-btn {
-      background: #4CAF50;
-      color: white;
-      border-radius: 6px;
-      padding: 8px 16px;
-      font-size: 15px;
-      margin-top: 5px;
-      width: 180px;
-    }
-    #video-instructions {
-      color: #fff;
-      font-size: 13px;
-      font-weight: bold;
-      background-color: rgba(0,0,0,0.6);
-      padding: 8px 10px;
-      border-radius: 8px;
-      margin-top: 8px;
-      text-align: center;
-      max-width: 90%;
-      display: none;
-    }
-    #loading-message {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 20;
-      background: rgba(0,0,0,0.8);
-      color: #fff;
-      padding: 16px 20px;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: bold;
-      text-align: center;
-      max-width: 80%;
-      display: none;
-    }
-  </style>
+  #camera-wrap {
+    position:fixed;
+    inset:0;
+    width:100vw;
+    height:100vh;
+    overflow:hidden;
+    background:black;
+  }
+
+  video {
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    background:black;
+  }
+
+  #frame {
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    pointer-events:none;
+  }
+
+  #buttons {
+    position:fixed;
+    bottom:25px;
+    width:100%;
+    display:flex;
+    justify-content:center;
+    gap:20px;
+    z-index:20;
+  }
+
+  button {
+    padding:12px 20px;
+    border:0;
+    border-radius:12px;
+    font-size:18px;
+    font-weight:bold;
+    background:#ffffffd0;
+    cursor:pointer;
+  }
+
+  #download { display:none; }
+
+  /* 👇 Indicador REC */
+  #recordingIndicator {
+    position:fixed;
+    top:20px;
+    left:50%;
+    transform:translateX(-50%);
+    background:rgba(0,0,0,0.7);
+    color:#fff;
+    padding:6px 14px;
+    font-size:16px;
+    font-weight:bold;
+    border-radius:20px;
+    display:none;
+    z-index:30;
+  }
+</style>
 </head>
-<body data-ec="mfz-640-24-ecb">
+<body>
 
-  <video id="video" autoplay muted playsinline></video>
-  <img id="overlay" src="moldura.png" alt="Moldura">
+<div id="camera-wrap">
+  <video id="video" autoplay playsinline muted></video>
+  <img id="frame" src="moldura.png">
+</div>
 
-  <div id="recording-indicator">🔴 REC 00:00</div>
-  <div id="loading-message">Aguarde… estamos preparando seu vídeo 📽️✨</div>
+<div id="recordingIndicator">🔴 REC 00:00</div>
 
-  <div id="buttons">
-    <button id="switch-camera" title="Trocar câmera">Trocar câmera 🔄</button>
-    <button id="capture" title="Tirar foto">Tirar foto 📸</button>
-    <button id="start-recording" title="Gravar vídeo">Gravar vídeo 🎥</button>
-    <button id="stop-recording" title="Parar gravação" style="display:none;">Parar gravação ⏹</button>
-  </div>
+<div id="buttons">
+  <button id="switchBtn">Trocar</button>
+  <button id="snapBtn">Foto</button>
+  <button id="recordBtn">Gravar</button>
+  <button id="stopBtn" style="display:none;">Parar</button>
+</div>
 
-  <canvas id="canvas" style="display:none;"></canvas>
-  <canvas id="recordingCanvas" style="display:none;"></canvas>
+<a id="download" download="foto-evento.png"></a>
 
-  <div id="preview-container">
-    <img id="photo-preview">
-    <button id="save-btn">Salvar na galeria</button>
-    <button id="retry-btn">Tirar outra</button>
-    <div id="instructions">
-      Se estiver no iPhone:<br>
-      Toque e segure a imagem e selecione “Salvar na Fototeca”.
-    </div>
-  </div>
+<!-- Canvas para gravação -->
+<canvas id="recordCanvas" style="display:none;"></canvas>
 
-  <div id="video-preview-container">
-    <video id="video-preview" controls playsinline></video>
-    <button id="save-video-btn">Salvar vídeo</button>
-    <div id="video-instructions">
-      No iPhone, o vídeo vai para o app “Arquivos” (na pasta Downloads).<br>
-      Depois abra o vídeo, toque em compartilhar e escolha “Salvar Vídeo”.
-    </div>
-  </div>
+<script>
+/* ---------------------
+   ELEMENTOS
+---------------------- */
+const video = document.getElementById("video");
+const frame = document.getElementById("frame");
+const snapBtn = document.getElementById("snapBtn");
+const switchBtn = document.getElementById("switchBtn");
+const download = document.getElementById("download");
 
-  <script>
-    /* TODO O SEU SCRIPT ORIGINAL PERMANECE IGUAL.
-       Nenhuma função foi removida ou alterada. */
-  </script>
+const recordBtn = document.getElementById("recordBtn");
+const stopBtn = document.getElementById("stopBtn");
+const recordCanvas = document.getElementById("recordCanvas");
+const recordingIndicator = document.getElementById("recordingIndicator");
+
+/* ---------------------
+   VARIÁVEIS
+---------------------- */
+let stream = null;
+let usingFront = true;
+
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
+
+let recordStartTime = 0;
+let recordTimerInterval = null;
+
+let lastVideoUrl = null;
+
+const API_URL = "https://video-converter-api-production-bb8e.up.railway.app/convert";
+const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+/* ---------------------
+   INICIAR CÂMERA
+---------------------- */
+async function startCamera(){
+  if(stream){
+    stream.getTracks().forEach(t=>t.stop());
+  }
+
+  stream = await navigator.mediaDevices.getUserMedia({
+    video:{ facingMode: usingFront ? "user" : "environment" },
+    audio:true
+  });
+
+  video.srcObject = stream;
+
+  video.style.transform = usingFront ? "scaleX(-1)" : "scaleX(1)";
+  await waitForVideoReady();
+}
+
+function waitForVideoReady(){
+  return new Promise(resolve=>{
+    if(video.readyState >= 2 && video.videoWidth > 0){
+      resolve();
+      return;
+    }
+    video.onloadedmetadata = ()=>resolve();
+  });
+}
+
+switchBtn.onclick = () => {
+  usingFront = !usingFront;
+  startCamera();
+};
+
+/* ---------------------
+   FOTO
+---------------------- */
+snapBtn.onclick = async () => {
+  await waitForVideoReady();
+
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+
+  const targetW = 720;
+  const targetH = 1280;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = targetW;
+  canvas.height = targetH;
+  const ctx = canvas.getContext("2d");
+
+  const buffer = document.createElement("canvas");
+  buffer.width = targetW;
+  buffer.height = targetH;
+  const btx = buffer.getContext("2d");
+
+  btx.save();
+  if(usingFront){
+    btx.translate(targetW,0);
+    btx.scale(-1,1);
+  }
+
+  const videoRatio = vw / vh;
+  const targetRatio = targetW / targetH;
+
+  let sx, sy, sw, sh;
+
+  if(videoRatio > targetRatio){
+    sh = vh;
+    sw = sh * targetRatio;
+    sx = (vw - sw) / 2;
+    sy = 0;
+  } else {
+    sw = vw;
+    sh = sw / targetRatio;
+    sx = 0;
+    sy = (vh - sh) / 2;
+  }
+
+  btx.drawImage(video, sx, sy, sw, sh, 0, 0, targetW, targetH);
+  btx.restore();
+
+  ctx.drawImage(buffer, 0, 0);
+  ctx.drawImage(frame, 0, 0, targetW, targetH);
+
+  download.href = canvas.toDataURL("image/png");
+  download.click();
+};
+
+/* ---------------------
+   TIMER REC
+---------------------- */
+function startTimer(){
+  recordStartTime = Date.now();
+  recordingIndicator.style.display = "block";
+
+  recordTimerInterval = setInterval(()=>{
+    const diff = Math.floor((Date.now() - recordStartTime) / 1000);
+    const m = String(Math.floor(diff / 60)).padStart(2,"0");
+    const s = String(diff % 60).padStart(2,"0");
+    recordingIndicator.textContent = `🔴 REC ${m}:${s}`;
+  },500);
+}
+
+function stopTimer(){
+  clearInterval(recordTimerInterval);
+  recordingIndicator.style.display = "none";
+}
+
+/* ---------------------
+   GRAVAR VÍDEO
+---------------------- */
+recordBtn.onclick = async () => {
+  if(isRecording) return;
+
+  isRecording = true;
+  recordedChunks = [];
+
+  await waitForVideoReady();
+
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+
+  const targetW = 720;
+  const targetH = Math.round(targetW * (vh / vw));
+
+  recordCanvas.width = targetW;
+  recordCanvas.height = targetH;
+  const ctx = recordCanvas.getContext("2d");
+
+  function draw() {
+    if(!isRecording) return;
+
+    ctx.clearRect(0,0,targetW,targetH);
+
+    ctx.save();
+    if(usingFront){
+      ctx.translate(targetW,0);
+      ctx.scale(-1,1);
+    }
+
+    ctx.drawImage(video, 0, 0, targetW, targetH);
+    ctx.restore();
+
+    ctx.drawImage(frame,0,0,targetW,targetH);
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+
+  const canvasStream = recordCanvas.captureStream(24);
+  const audioTrack = stream.getAudioTracks()[0];
+
+  const combined = new MediaStream();
+  canvasStream.getVideoTracks().forEach(t=>combined.addTrack(t));
+  if(audioTrack) combined.addTrack(audioTrack);
+
+  mediaRecorder = new MediaRecorder(combined, { mimeType:"video/webm" });
+
+  mediaRecorder.ondataavailable = e => {
+    if(e.data.size > 0) recordedChunks.push(e.data);
+  };
+
+  mediaRecorder.onstop = async () => {
+    isRecording = false;
+    stopTimer();
+
+    const blob = new Blob(recordedChunks, { type:"video/webm" });
+
+    // enviar para conversão
+    const fd = new FormData();
+    fd.append("video", blob, "video.webm");
+
+    const device = isiOS ? "ios" : "android";
+
+    const res = await fetch(`${API_URL}?device=${device}`, {
+      method:"POST",
+      body:fd
+    });
+
+    const mp4 = await res.blob();
+    const url = URL.createObjectURL(mp4);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "video-moldura.mp4";
+    a.click();
+
+    URL.revokeObjectURL(url);
+  };
+
+  mediaRecorder.start(100);
+
+  startTimer();
+  recordBtn.style.display = "none";
+  stopBtn.style.display = "inline-block";
+};
+
+/* ---------------------
+   PARAR
+---------------------- */
+stopBtn.onclick = () => {
+  if(mediaRecorder && mediaRecorder.state === "recording"){
+    isRecording = false;
+    mediaRecorder.stop();
+  }
+
+  recordBtn.style.display = "inline-block";
+  stopBtn.style.display = "none";
+};
+
+startCamera();
+</script>
 
 </body>
 </html>
