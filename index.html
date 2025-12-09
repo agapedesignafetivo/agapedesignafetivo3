@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Feito por Criis</title>
+<title>Teste</title>
 
 <style>
   html, body {
@@ -52,10 +52,10 @@
   }
 
   button {
-    padding:4px 20px;
+    padding:6px 12px;
     border:3px solid #74a14a; /* Borda verde */
     border-radius:12px;
-    font-size:18px;
+    font-size:14px;
     font-weight:bold;
     background:#ffffff;
     cursor:pointer;
@@ -244,10 +244,10 @@ function stopTimer(){
 }
 
 /* ---------------------
-   GRAVAR VÍDEO
+   GRAVAR VÍDEO COM PROCESSAMENTO
 ---------------------- */
 recordBtn.onclick = async () => {
-  if(isRecording) return;
+  if (isRecording) return;
 
   isRecording = true;
   recordedChunks = [];
@@ -265,20 +265,19 @@ recordBtn.onclick = async () => {
   const ctx = recordCanvas.getContext("2d");
 
   function draw() {
-    if(!isRecording) return;
+    if (!isRecording) return;
 
-    ctx.clearRect(0,0,targetW,targetH);
+    ctx.clearRect(0, 0, targetW, targetH);
 
     ctx.save();
-    if(usingFront){
-      ctx.translate(targetW,0);
-      ctx.scale(-1,1);
+    if (usingFront) {
+      ctx.translate(targetW, 0);
+      ctx.scale(-1, 1);
     }
-
     ctx.drawImage(video, 0, 0, targetW, targetH);
     ctx.restore();
 
-    ctx.drawImage(frame,0,0,targetW,targetH);
+    ctx.drawImage(frame, 0, 0, targetW, targetH);
 
     requestAnimationFrame(draw);
   }
@@ -286,43 +285,54 @@ recordBtn.onclick = async () => {
 
   const canvasStream = recordCanvas.captureStream(24);
   const audioTrack = stream.getAudioTracks()[0];
-
   const combined = new MediaStream();
-  canvasStream.getVideoTracks().forEach(t=>combined.addTrack(t));
-  if(audioTrack) combined.addTrack(audioTrack);
+  canvasStream.getVideoTracks().forEach(t => combined.addTrack(t));
+  if (audioTrack) combined.addTrack(audioTrack);
 
-  mediaRecorder = new MediaRecorder(combined, { mimeType:"video/webm" });
+  mediaRecorder = new MediaRecorder(combined, { mimeType: "video/webm" });
 
   mediaRecorder.ondataavailable = e => {
-    if(e.data.size > 0) recordedChunks.push(e.data);
+    if (e.data.size > 0) recordedChunks.push(e.data);
   };
 
   mediaRecorder.onstop = async () => {
     isRecording = false;
     stopTimer();
 
-    const blob = new Blob(recordedChunks, { type:"video/webm" });
+    // Mostrar indicador de processamento
+    recordingIndicator.style.display = "block";
+    recordingIndicator.textContent = "⏳ Processando vídeo...";
 
-    // enviar para conversão
+    const blob = new Blob(recordedChunks, { type: "video/webm" });
     const fd = new FormData();
     fd.append("video", blob, "video.webm");
 
-    const device = isiOS ? "ios" : "android";
+    try {
+      const device = isiOS ? "ios" : "android";
 
-    const res = await fetch(`${API_URL}?device=${device}`, {
-      method:"POST",
-      body:fd
-    });
+      const res = await fetch(`${API_URL}?device=${device}`, {
+        method: "POST",
+        body: fd
+      });
 
-    const mp4 = await res.blob();
-    const url = URL.createObjectURL(mp4);
+      const mp4 = await res.blob();
+      const url = URL.createObjectURL(mp4);
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "video-moldura.mp4";
-    a.click();
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "video-moldura.mp4";
+      a.click();
 
-    URL.revokeObjectURL(url);
+      URL.revokeObjectURL(url);
+
+      // Esconder indicador
+      recordingIndicator.style.display = "none";
+
+    } catch (err) {
+      console.error("Erro na conversão:", err);
+      recordingIndicator.textContent = "❌ Erro ao processar vídeo!";
+      setTimeout(() => recordingIndicator.style.display = "none", 2000);
+    }
   };
 
   mediaRecorder.start(100);
@@ -336,7 +346,7 @@ recordBtn.onclick = async () => {
    PARAR
 ---------------------- */
 stopBtn.onclick = () => {
-  if(mediaRecorder && mediaRecorder.state === "recording"){
+  if (mediaRecorder && mediaRecorder.state === "recording") {
     isRecording = false;
     mediaRecorder.stop();
   }
