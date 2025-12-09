@@ -3,93 +3,92 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Feito por Criis</title>
+<title>Criiiiiiiis</title>
 
 <style>
-  html, body {
-    margin:0;
-    padding:0;
-    overflow:hidden;
-    background:black;
-    height:100%;
-    width:100%;
-  }
+html, body {
+  margin:0;
+  padding:0;
+  overflow:hidden;
+  background:black;
+  height:100%;
+  width:100%;
+}
 
-  #camera-wrap {
-    position:fixed;
-    inset:0;
-    width:100vw;
-    height:100vh;
-    overflow:hidden;
-    background:black;
-  }
+#camera-wrap {
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
+  background:black;
+}
 
-  video {
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    background:black;
-  }
+video {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  background:black;
+}
 
-  #frame {
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    pointer-events:none;
-  }
+#frame {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+}
 
-  #buttons {
-    position:fixed;
-    bottom:25px;
-    width:100%;
-    display:flex;
-    justify-content:center;
-    gap:20px;
-    z-index:20;
-  }
+#buttons {
+  position:fixed;
+  bottom:25px;
+  width:100%;
+  display:flex;
+  justify-content:center;
+  gap:15px;
+  z-index:20;
+}
 
-  button {
-    padding:6px 12px;
-    border:3px solid #74a14a; /* Borda verde */
-    border-radius:12px;
-    font-size:14px;
-    font-weight:bold;
-    background:#ffffff;
-    cursor:pointer;
-  }
+button {
+  padding:6px 12px;
+  border:3px solid #74a14a;
+  border-radius:12px;
+  font-size:14px;
+  font-weight:bold;
+  background:#ffffff;
+  cursor:pointer;
+}
 
-  #download { display:none; }
+#download { display:none; }
 
-  /* Indicador REC com piscando */
-  #recordingIndicator {
-    position:fixed;
-    top:20px;
-    left:50%;
-    transform:translateX(-50%);
-    background:rgba(0,0,0,0.7);
-    color:#fff;
-    padding:6px 14px;
-    font-size:16px;
-    font-weight:bold;
-    border-radius:20px;
-    display:none;
-    z-index:30;
-  }
+#recordingIndicator {
+  position:fixed;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(0,0,0,0.7);
+  color:#fff;
+  padding:6px 14px;
+  font-size:16px;
+  font-weight:bold;
+  border-radius:20px;
+  display:none;
+  z-index:30;
+}
 
-  #recordingIndicator.blink::before {
-    content: "🔴";
-    display:inline-block;
-    margin-right:6px;
-    animation: blink 1s infinite;
-  }
+#recordingIndicator.blink::before {
+  content: "🔴";
+  display:inline-block;
+  margin-right:6px;
+  animation: blink 1s infinite;
+}
 
-  @keyframes blink {
-    0%, 50%, 100% { opacity: 1; }
-    25%, 75% { opacity: 0; }
-  }
+@keyframes blink {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0; }
+}
 </style>
 </head>
 <body>
@@ -139,15 +138,18 @@ const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 ---------------------- */
 async function startCamera(){
   if(stream) stream.getTracks().forEach(t=>t.stop());
-
-  stream = await navigator.mediaDevices.getUserMedia({
-    video:{ facingMode: usingFront ? "user" : "environment" },
-    audio:true
-  });
-
-  video.srcObject = stream;
-  video.style.transform = usingFront ? "scaleX(-1)" : "scaleX(1)";
-  await waitForVideoReady();
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode: usingFront ? "user" : "environment" },
+      audio:true
+    });
+    video.srcObject = stream;
+    video.style.transform = usingFront ? "scaleX(-1)" : "scaleX(1)";
+    await waitForVideoReady();
+  } catch(err) {
+    alert("Erro ao acessar a câmera: " + err.message);
+    console.error(err);
+  }
 }
 
 function waitForVideoReady(){
@@ -199,10 +201,8 @@ snapBtn.onclick = async () => {
     ctx.translate(targetW,0);
     ctx.scale(-1,1);
   }
-
   ctx.drawImage(video,sx,sy,sw,sh,0,0,targetW,targetH);
   ctx.restore();
-
   ctx.drawImage(frame,0,0,targetW,targetH);
 
   download.href = canvas.toDataURL("image/png");
@@ -238,7 +238,6 @@ recordBtn.onclick = async () => {
   if(isRecording) return;
   isRecording = true;
   recordedChunks = [];
-
   await waitForVideoReady();
 
   const targetW = 1080;
@@ -289,7 +288,23 @@ recordBtn.onclick = async () => {
   canvasStream.getVideoTracks().forEach(t=>combined.addTrack(t));
   if(audioTrack) combined.addTrack(audioTrack);
 
-  mediaRecorder = new MediaRecorder(combined,{ mimeType:"video/webm" });
+  // Criar MediaRecorder com fallback
+  let options = { mimeType: 'video/webm; codecs=vp9' };
+  if(!MediaRecorder.isTypeSupported(options.mimeType)){
+    options = { mimeType: 'video/webm; codecs=vp8' };
+    if(!MediaRecorder.isTypeSupported(options.mimeType)){
+      options = { mimeType: 'video/webm' };
+    }
+  }
+
+  try {
+    mediaRecorder = new MediaRecorder(combined, options);
+  } catch(err){
+    alert("Erro ao iniciar gravação: "+err.message);
+    console.error(err);
+    isRecording = false;
+    return;
+  }
 
   mediaRecorder.ondataavailable = e => {
     if(e.data.size>0) recordedChunks.push(e.data);
@@ -298,7 +313,6 @@ recordBtn.onclick = async () => {
   mediaRecorder.onstop = async () => {
     isRecording = false;
     stopTimer();
-
     recordingIndicator.style.display = "block";
     recordingIndicator.textContent = "⏳ Processando vídeo...";
 
