@@ -91,7 +91,7 @@ button:hover {
 <img id="overlay" src="moldura.png" alt="Moldura" />
 
 <div id="recording-indicator">🔴 REC 00:00</div>
-<div id="loading-message">Aguarde… estamos preparando seu vídeo ⏳</div>
+<div id="loading-message">Aguarde… estamos preparando seu vídeo 📽️✨</div>
 
 <div id="buttons">
   <button id="switch-camera">🔄 Trocar Câmera</button>
@@ -104,7 +104,136 @@ button:hover {
 <canvas id="recordingCanvas" style="display:none;"></canvas>
 
 <script>
-// TODO: Seu código JavaScript permanece igual, incluindo startCamera, gravação e captura de fotos
+const API_URL = "https://videos-molduras-production-00e9.up.railway.app/convert";
+const video = document.getElementById('video');
+const overlay = document.getElementById('overlay');
+const canvas = document.getElementById('canvas');
+const captureBtn = document.getElementById('capture');
+const switchCameraBtn = document.getElementById('switch-camera');
+const startRecordBtn = document.getElementById('start-recording');
+const stopRecordBtn = document.getElementById('stop-recording');
+const recordingIndicator = document.getElementById('recording-indicator');
+const recordingCanvas = document.getElementById('recordingCanvas');
+const loadingMessage = document.getElementById('loading-message');
+
+let stream, usingFrontCamera = true;
+let mediaRecorder = null, recordedChunks = [], isRecording = false;
+let recordStartTime = 0, recordTimerInterval = null;
+const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+async function startCamera() {
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: usingFrontCamera ? 'user':'environment', width:720, height:1280 },
+    audio:true
+  });
+  video.srcObject = stream;
+  video.style.transform = usingFrontCamera ? 'scaleX(-1)':'scaleX(1)';
+}
+
+switchCameraBtn.onclick = () => {
+  usingFrontCamera = !usingFrontCamera;
+  startCamera();
+};
+
+function startRecordingTimer() {
+  recordStartTime = Date.now();
+  recordingIndicator.style.display = 'block';
+  recordTimerInterval = setInterval(()=>{
+    const diff = Math.floor((Date.now()-recordStartTime)/1000);
+    const m = String(Math.floor(diff/60)).padStart(2,'0');
+    const s = String(diff%60).padStart(2,'0');
+    recordingIndicator.textContent = `🔴 REC ${m}:${s}`;
+  },500);
+}
+
+function stopRecordingTimer() {
+  clearInterval(recordTimerInterval);
+  recordingIndicator.style.display = 'none';
+}
+
+captureBtn.onclick = () => {
+  const ctx = canvas.getContext('2d');
+  canvas.width = 720;
+  canvas.height = 1280;
+  if(usingFrontCamera){
+    ctx.translate(720,0);
+    ctx.scale(-1,1);
+  }
+  ctx.drawImage(video,0,0,720,1280);
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.drawImage(overlay,0,0,720,1280);
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = 'foto-moldura.png';
+  a.click();
+};
+
+startRecordBtn.onclick = () => {
+  if(!stream || isRecording) return;
+  const ctx = recordingCanvas.getContext('2d');
+  recordingCanvas.width = 720;
+  recordingCanvas.height = 1280;
+  recordedChunks = [];
+  isRecording = true;
+  startRecordingTimer();
+  startRecordBtn.style.display='none';
+  stopRecordBtn.style.display='inline-block';
+
+  function drawFrame() {
+    if(!isRecording) return;
+    ctx.clearRect(0,0,720,1280);
+    if(usingFrontCamera){
+      ctx.save();
+      ctx.translate(720,0);
+      ctx.scale(-1,1);
+      ctx.drawImage(video,0,0,720,1280);
+      ctx.restore();
+    } else ctx.drawImage(video,0,0,720,1280);
+    ctx.drawImage(overlay,0,0,720,1280);
+    requestAnimationFrame(drawFrame);
+  }
+  drawFrame();
+
+  const canvasStream = recordingCanvas.captureStream(24);
+  const combinedStream = new MediaStream();
+  canvasStream.getVideoTracks().forEach(t=>combinedStream.addTrack(t));
+  stream.getAudioTracks().forEach(t=>combinedStream.addTrack(t));
+  mediaRecorder = new MediaRecorder(combinedStream, { mimeType:'video/webm' });
+  mediaRecorder.ondataavailable = e=>{ if(e.data.size>0) recordedChunks.push(e.data); };
+  mediaRecorder.onstop = async ()=>{
+    isRecording=false;
+    stopRecordingTimer();
+    loadingMessage.style.display='block';
+    const blob = new Blob(recordedChunks,{ type:'video/webm' });
+    const formData = new FormData();
+    formData.append('video', blob, 'video.webm');
+    try {
+      const device = isiOS?'ios':'android';
+      const res = await fetch(`${API_URL}?device=${device}`,{ method:'POST', body:formData });
+      const mp4 = await res.blob();
+      const url = URL.createObjectURL(mp4);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'video-moldura.mp4';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch(e){
+      alert('Erro ao processar vídeo.');
+      console.error(e);
+    }
+    loadingMessage.style.display='none';
+    startRecordBtn.style.display='inline-block';
+    stopRecordBtn.style.display='none';
+  };
+  mediaRecorder.start(100);
+};
+
+stopRecordBtn.onclick = () => {
+  if(mediaRecorder && mediaRecorder.state==='recording') mediaRecorder.stop();
+};
+
+startCamera();
 </script>
 </body>
 </html>
